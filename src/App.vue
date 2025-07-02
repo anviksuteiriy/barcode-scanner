@@ -1,10 +1,22 @@
 <template>
-  <nav>
-    <router-link to="/">Home</router-link> |
-    <router-link to="/about">About</router-link>
-  </nav>
-  <router-view/>
+  <button class="" @click="startCamera">Open camera</button>
 </template>
+
+<script>
+export default {
+  methods: {
+    async startCamera() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        console.log(stream);
+      } catch (err) {
+        console.error("Error accessing camera:", err);
+        // Handle permission denial or other errors
+      }
+    }
+  }
+}
+</script>
 
 <style>
 #app {
