@@ -96,7 +96,7 @@ async function tryUploadQueue() {
   }
 
   // Keep only non-uploaded items
-  queue.value = remaining;
+  queue.value = [...remaining, ...queue.value.filter(item => !item.uploaded)];
   saveQueue();
 }
 
