@@ -17,6 +17,10 @@
     <div v-for="(item, index) in uploadedItems" class="text-green" :key="index">
       {{ item }}
     </div>
+
+    <div v-for="(text, index) in quotas" class="quotas" :key="index">
+      {{ text }}
+    </div>
   </div>
 </template>
 
@@ -25,6 +29,7 @@ import { onMounted, ref } from 'vue';
 
 const queue = ref([]);
 const uploadedItems = ref([]);
+const quotas = ref([]);
 
 function loadQueue() {
   queue.value = JSON.parse(localStorage.getItem('uploadQueue') || '[]');
@@ -100,7 +105,12 @@ async function tryUploadQueue() {
   saveQueue();
 }
 
-onMounted(() => {
+onMounted(async () => {
+  if ('storage' in navigator && 'estimate' in navigator.storage) {
+    const { quota, usage } = await navigator.storage.estimate();
+    quotas.value.push(`Used: ${Math.round(usage / 1024 / 1024)} MB`);
+    quotas.value.push(`Quota: ${Math.round(quota / 1024 / 1024)} MB`);
+  }
   loadQueue();
   window.addEventListener('online', tryUploadQueue);
 });
@@ -143,5 +153,11 @@ input {
 }
 .text-green {
   color: #42b983;
+}
+.quotas {
+  color: black;
+  font-weight: 500;
+  font-size: 18px;
+  margin-top: 16px;
 }
 </style>
