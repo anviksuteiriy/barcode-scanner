@@ -1,6 +1,6 @@
 <template>
   <div class="container">
-    <div>Ver 1.6.0</div>
+    <div>Ver 2.0</div>
     <input
       type="file"
       accept="image/*"
