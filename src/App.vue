@@ -115,7 +115,9 @@ async function tryUploadQueue() {
         }),
         headers: { 'Content-Type': 'application/json' }
       });
-
+      if (uploadPausedOrNetworkIssue.value) {
+        uploadPausedOrNetworkIssue.value = "";
+      }
       uploadedItems.value.push(`${item.fileName} uploaded`);
       successfulUploads.push(item.id);
     } catch (err) {
