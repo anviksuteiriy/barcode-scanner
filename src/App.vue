@@ -21,6 +21,10 @@
     <div v-for="(text, index) in quotas" class="quotas" :key="index">
       {{ text }}
     </div>
+
+    <div v-if="uploadPausedOrNetworkIssue">
+
+    </div>
   </div>
 </template>
 
@@ -35,6 +39,7 @@ import {
 const queue = ref([]);
 const uploadedItems = ref([]);
 const quotas = ref([]);
+const uploadPausedOrNetworkIssue = ref("");
 
 async function loadQueue() {
   queue.value = await getAllFromIndexedDB();
@@ -77,7 +82,7 @@ async function tryUploadQueue() {
   // 🛑 Check: Are we online?
   if (!navigator.onLine) {
     console.warn('Device is offline. Upload paused.');
-    uploadedItems.value.push('Offline - Upload paused.');
+    uploadPausedOrNetworkIssue.value = 'Offline - Upload paused.';
     return;
   }
 
@@ -91,7 +96,7 @@ async function tryUploadQueue() {
 
     if (slowTypes.includes(effectiveType) || saveData) {
       console.warn(`Network is too slow (${effectiveType}) or data saving is enabled.`);
-      uploadedItems.value.push(`Slow or limited network (${effectiveType}) - Upload skipped.`);
+      uploadPausedOrNetworkIssue.value = `Slow or limited network (${effectiveType}) - Upload skipped.`;
       return;
     }
   }
