@@ -23,7 +23,7 @@
     </div>
 
     <div v-if="uploadPausedOrNetworkIssue">
-
+      {{ uploadPausedOrNetworkIssue }}
     </div>
   </div>
 </template>
