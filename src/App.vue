@@ -26,33 +26,36 @@
 
 <script setup>
 import { onMounted, ref } from 'vue';
+import {
+  addToIndexedDB,
+  getAllFromIndexedDB,
+  deleteFromIndexedDB
+} from '@/utils/db';
 
 const queue = ref([]);
 const uploadedItems = ref([]);
 const quotas = ref([]);
 
-function loadQueue() {
-  queue.value = JSON.parse(localStorage.getItem('uploadQueue') || '[]');
+async function loadQueue() {
+  queue.value = await getAllFromIndexedDB();
 }
 
-function saveQueue() {
-  localStorage.setItem('uploadQueue', JSON.stringify(queue.value));
-}
-
-function addToQueue(itemId, file) {
+async function addToQueue(itemId, file) {
   const reader = new FileReader();
-  reader.onload = () => {
+  reader.onload = async () => {
     const base64 = reader.result;
-
-    queue.value.push({
-      id: Date.now() + Math.random(), // make unique
+    const newItem = {
+      id: Date.now() + Math.random(), // unique
       itemId,
       fileName: file.name,
       data: base64,
-      uploaded: false,
-    });
-
-    saveQueue();
+      uploaded: false
+    };
+    await addToIndexedDB(newItem);
+    queue.value.push(newItem);
+    const { usage } = await navigator.storage.estimate();
+    quotas.value.pop();
+    quotas.value.push(`Used: ${Math.round(usage / 1024 / 1024)} MB`);
   };
   reader.readAsDataURL(file);
 }
@@ -66,17 +69,37 @@ function onFilesSelected(event) {
 
   files.forEach(file => addToQueue(itemId, file));
 
-  // Try immediate upload attempt
-  tryUploadQueue();
+  // Try upload after small delay
+  setTimeout(() => tryUploadQueue(), 500);
 }
 
 async function tryUploadQueue() {
+  // 🛑 Check: Are we online?
+  if (!navigator.onLine) {
+    console.warn('Device is offline. Upload paused.');
+    uploadedItems.value.push('Offline - Upload paused.');
+    return;
+  }
+
+  // 🐢 Optional: Check for slow or constrained network
+  const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+
+  if (connection) {
+    const slowTypes = ['slow-2g', '2g', '3g'];
+    const effectiveType = connection.effectiveType;
+    const saveData = connection.saveData;
+
+    if (slowTypes.includes(effectiveType) || saveData) {
+      console.warn(`Network is too slow (${effectiveType}) or data saving is enabled.`);
+      uploadedItems.value.push(`Slow or limited network (${effectiveType}) - Upload skipped.`);
+      return;
+    }
+  }
+
   const pending = queue.value.filter(item => !item.uploaded);
-  const remaining = [];
+  const successfulUploads = [];
 
   for (const item of pending) {
-    if (item.uploaded) continue;
-
     try {
       await fetch('/api/upload', {
         method: 'POST',
@@ -87,62 +110,34 @@ async function tryUploadQueue() {
         }),
         headers: { 'Content-Type': 'application/json' }
       });
-      console.log(uploadedItems.value);
-      // Mark uploaded
-      item.uploaded = true;
-      uploadedItems.value.push(`${item.fileName} is uploaded now.`);
-      
 
-      item.uploaded = true;
+      uploadedItems.value.push(`${item.fileName} uploaded`);
+      successfulUploads.push(item.id);
     } catch (err) {
       console.warn(`Failed to upload ${item.fileName}`, err);
-      remaining.push(item);
     }
   }
 
-  // Keep only non-uploaded items
-  queue.value = [...remaining, ...queue.value.filter(item => !item.uploaded)];
-  saveQueue();
+  for (const id of successfulUploads) {
+    await deleteFromIndexedDB(id);
+  }
+
+  await loadQueue();
 }
 
 onMounted(async () => {
   if ('storage' in navigator && 'estimate' in navigator.storage) {
     const { quota, usage } = await navigator.storage.estimate();
-    quotas.value.push(`Used: ${Math.round(usage / 1024 / 1024)} MB`);
     quotas.value.push(`Quota: ${Math.round(quota / 1024 / 1024)} MB`);
+    quotas.value.push(`Used: ${Math.round(usage / 1024 / 1024)} MB`);
   }
-  loadQueue();
+
+  await loadQueue();
   window.addEventListener('online', tryUploadQueue);
 });
 </script>
 
 <style scoped>
-input {
-  margin-bottom: 1rem;
-}
-</style>
-
-<style scoped>
-#app {
-  font-family: Avenir, Helvetica, Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-align: center;
-  color: #2c3e50;
-}
-
-nav {
-  padding: 30px;
-}
-
-nav a {
-  font-weight: bold;
-  color: #2c3e50;
-}
-
-nav a.router-link-exact-active {
-  color: #42b983;
-}
 .container {
   display: flex;
   flex-direction: column;
