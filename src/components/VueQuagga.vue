@@ -31,8 +31,8 @@ function startScanner() {
       type: 'LiveStream',
       target: scannerContainer.value,
       constraints: {
-        facingMode: { exact: 'environment' }, // back camera
-        width: { ideal: 1280 },
+        facingMode: { ideal: 'environment' }, // back camera
+        width: { ideal: 1960 },
         height: { ideal: 720 }
       },
     },
