@@ -62,8 +62,10 @@ hints.set(DecodeHintType.POSSIBLE_FORMATS, [
   BarcodeFormat.CODE_128,
   BarcodeFormat.CODE_39,
   BarcodeFormat.CODE_93,
+  BarcodeFormat.ITF,
   BarcodeFormat.EAN_13,
   BarcodeFormat.UPC_A,
+  BarcodeFormat.QR_CODE,
 ])
 reader.setHints(hints)
 
@@ -92,7 +94,8 @@ const startScanner = async () => {
     videoRef.value,
     (result, error) => {
       if (result) {
-        const text = result.getText()
+        const text = result.getText();
+        prompt(text);
         if (text !== scannedCode.value) {
           scannedCode.value = text
           console.log('Scanned:', text)
@@ -105,9 +108,10 @@ const startScanner = async () => {
     },
     {
       video: {
-        facingMode: 'environment',
-        width: { ideal: 1280 },
-        height: { ideal: 720 }
+        deviceId: selectedDeviceId,
+        width: { ideal: 1920 },
+        height: { ideal: 1080 },
+        facingMode: 'environment'
       }
     }
   )
