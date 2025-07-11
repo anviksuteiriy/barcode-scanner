@@ -227,8 +227,8 @@ input {
   margin-top: 16px;
 }
 video {
-  width: 90%;
-  max-height: 150px;
+  width: 100%;
+  max-height: 300px;
   border: 1px solid #ccc;
 }
 </style>
