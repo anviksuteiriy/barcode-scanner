@@ -10,17 +10,13 @@
     />
     <button @click="tryUploadQueue">Force Sync</button>
     <div>
-      <h2>Barcode 128 Scanner</h2>
-      <video ref="videoRef" />
+      <h2>Code 128 Scanner</h2>
+      <video ref="videoRef" width="320" height="240" autoplay muted playsinline />
       <div v-if="scannedCode" class="mt-4">
-        <strong>Scanned Code:</strong> {{ scannedCode }}
+        <strong>Scanned:</strong> {{ scannedCode }}
       </div>
-      <button @click="startScanner" class="mt-2 bg-blue-600 text-white px-4 py-2 rounded">
-        Start Scanner
-      </button>
-      <button @click="stopScanner" class="mt-2 ml-2 bg-red-600 text-white px-4 py-2 rounded">
-        Stop
-      </button>
+      <button @click="startScanner" class="mt-2 px-4 py-2 bg-blue-600 text-white rounded">Start</button>
+      <button @click="stopScanner" class="ml-2 px-4 py-2 bg-red-600 text-white rounded">Stop</button>
     </div>
     <ul>
       <li v-for="(item) in queue" :key="item.id">
@@ -62,7 +58,13 @@ const scannedCode = ref(null)
 
 const reader = new BrowserMultiFormatReader()
 const hints = new Map()
-hints.set(DecodeHintType.POSSIBLE_FORMATS, [BarcodeFormat.CODE_128])
+hints.set(DecodeHintType.POSSIBLE_FORMATS, [
+  BarcodeFormat.CODE_128,
+  BarcodeFormat.CODE_39,
+  BarcodeFormat.CODE_93,
+  BarcodeFormat.EAN_13,
+  BarcodeFormat.UPC_A,
+])
 reader.setHints(hints)
 
 let streamControls = null
@@ -73,7 +75,6 @@ const startScanner = async () => {
   const devices = await navigator.mediaDevices.enumerateDevices()
   const videoInputDevices = devices.filter(device => device.kind === 'videoinput')
 
-  // Prefer back camera
   const rearCamera = videoInputDevices.find(device =>
     device.label.toLowerCase().includes('back') ||
     device.label.toLowerCase().includes('rear') ||
@@ -81,19 +82,35 @@ const startScanner = async () => {
   )
 
   const selectedDeviceId = rearCamera?.deviceId || videoInputDevices[0]?.deviceId
-
   if (!selectedDeviceId) {
-    console.error('No camera found.')
+    console.error('No camera found')
     return
   }
 
-  streamControls = await reader.decodeFromVideoDevice(selectedDeviceId, videoRef.value, (result, error, controls) => {
-    if (result) {
-      scannedCode.value = result.getText()
-      controls.stop()
-      streamControls = null
+  streamControls = await reader.decodeFromVideoDevice(
+    selectedDeviceId,
+    videoRef.value,
+    (result, error) => {
+      if (result) {
+        const text = result.getText()
+        if (text !== scannedCode.value) {
+          scannedCode.value = text
+          console.log('Scanned:', text)
+          // comment out to keep scanning:
+          // controls.stop()
+        }
+      } else if (error && error.name !== 'NotFoundException') {
+        console.warn('Decode error:', error.message)
+      }
+    },
+    {
+      video: {
+        facingMode: 'environment',
+        width: { ideal: 1280 },
+        height: { ideal: 720 }
+      }
     }
-  })
+  )
 }
 
 const stopScanner = () => {
