@@ -72,17 +72,25 @@ const startScanner = async () => {
 
   const devices = await navigator.mediaDevices.enumerateDevices()
   const videoInputDevices = devices.filter(device => device.kind === 'videoinput')
-  const deviceId = videoInputDevices[0]?.deviceId
 
-  if (!deviceId) {
-    console.error('No video input device found.')
+  // Prefer back camera
+  const rearCamera = videoInputDevices.find(device =>
+    device.label.toLowerCase().includes('back') ||
+    device.label.toLowerCase().includes('rear') ||
+    device.label.toLowerCase().includes('environment')
+  )
+
+  const selectedDeviceId = rearCamera?.deviceId || videoInputDevices[0]?.deviceId
+
+  if (!selectedDeviceId) {
+    console.error('No camera found.')
     return
   }
 
-  streamControls = await reader.decodeFromVideoDevice(deviceId, videoRef.value, (result, error, controls) => {
+  streamControls = await reader.decodeFromVideoDevice(selectedDeviceId, videoRef.value, (result, error, controls) => {
     if (result) {
       scannedCode.value = result.getText()
-      controls.stop() // auto stop after successful scan
+      controls.stop()
       streamControls = null
     }
   })
@@ -95,9 +103,7 @@ const stopScanner = () => {
   }
 }
 
-onUnmounted(() => {
-  stopScanner()
-})
+onUnmounted(stopScanner)
 // this is for barcode 128 scanner
 async function loadQueue() {
   queue.value = await getAllFromIndexedDB();
