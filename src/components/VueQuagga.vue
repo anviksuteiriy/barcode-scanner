@@ -1,9 +1,13 @@
 <template>
   <div>
     <div ref="scannerContainer" class="viewport"></div>
-    <button @click="startScanner">Start</button>
-    <button @click="stopScanner">Stop</button>
-    <p v-if="code">Detected Code: {{ code }}</p>
+
+    <div class="controls">
+      <button @click="startScanner">Start Scanner</button>
+      <button @click="stopScanner">Stop Scanner</button>
+    </div>
+
+    <p v-if="code">✅ Detected Code: <strong>{{ code }}</strong></p>
   </div>
 </template>
 
@@ -14,18 +18,23 @@ import Quagga from '@ericblade/quagga2'
 const scannerContainer = ref(null)
 const code = ref(null)
 
-async function startScanner() {
-  // Start directly using facingMode: environment
+function startScanner() {
+  console.log('📷 Starting scanner...')
+  if (!scannerContainer.value) {
+    console.error('❌ Scanner container missing')
+    return
+  }
+
   Quagga.init({
     inputStream: {
       name: 'Live',
       type: 'LiveStream',
       target: scannerContainer.value,
       constraints: {
-        facingMode: { exact: 'environment' }, // Try to use back camera directly
-        width: { ideal: 1920 },
+        facingMode: { exact: 'environment' }, // back camera
+        width: { ideal: 1280 },
         height: { ideal: 720 }
-      }
+      },
     },
     locator: {
       patchSize: 'medium',
@@ -35,29 +44,33 @@ async function startScanner() {
       readers: ['code_128_reader', 'ean_reader'],
     },
     locate: true,
-  }, (err) => {
+    numOfWorkers: navigator.hardwareConcurrency || 4,
+  }, err => {
     if (err) {
       console.error('❌ Quagga init failed:', err)
       return
     }
-    console.log('✅ Quagga init success')
+    console.log('✅ Quagga initialized, starting...')
     Quagga.start()
   })
 
   Quagga.onDetected(result => {
     const scanned = result.codeResult.code
-    console.log('📦 Barcode Detected:', scanned)
+    console.log('📦 Detected:', scanned)
     code.value = scanned
-    // Optionally stop scanning: stopScanner()
   })
 }
 
 function stopScanner() {
+  console.log('🛑 Stopping scanner...')
   Quagga.stop()
+
   const stream = Quagga?.cameraAccess?.getActiveStream?.()
   if (stream) {
     stream.getTracks().forEach(track => track.stop())
+    console.log('✅ Stream stopped')
   }
+
   scannerContainer.value.innerHTML = ''
   code.value = null
 }
@@ -72,9 +85,28 @@ onBeforeUnmount(() => {
   width: 100%;
   max-width: 720px;
   margin: auto;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 0 12px rgba(0, 0, 0, 0.2);
 }
 video, canvas {
   width: 100%;
   height: auto;
+  display: block;
+}
+.controls {
+  margin-top: 1rem;
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+}
+button {
+  padding: 0.6rem 1.2rem;
+  background-color: #42b883;
+  color: white;
+  font-weight: bold;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
 }
 </style>
