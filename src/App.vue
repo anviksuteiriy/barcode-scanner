@@ -9,6 +9,19 @@
       @change="onFilesSelected"
     />
     <button @click="tryUploadQueue">Force Sync</button>
+    <div>
+      <h2>Barcode 128 Scanner</h2>
+      <video ref="videoRef" />
+      <div v-if="scannedCode" class="mt-4">
+        <strong>Scanned Code:</strong> {{ scannedCode }}
+      </div>
+      <button @click="startScanner" class="mt-2 bg-blue-600 text-white px-4 py-2 rounded">
+        Start Scanner
+      </button>
+      <button @click="stopScanner" class="mt-2 ml-2 bg-red-600 text-white px-4 py-2 rounded">
+        Stop
+      </button>
+    </div>
     <ul>
       <li v-for="(item) in queue" :key="item.id">
         {{ item.itemId }} - {{ item.fileName }} - {{ item.uploaded ? 'Uploaded' : 'Pending' }}
@@ -29,7 +42,9 @@
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue';
+import { onMounted, ref, onUnmounted } from 'vue';
+import { BrowserMultiFormatReader } from '@zxing/browser';
+import { BarcodeFormat, DecodeHintType } from '@zxing/library'
 import {
   addToIndexedDB,
   getAllFromIndexedDB,
@@ -41,6 +56,49 @@ const uploadedItems = ref([]);
 const quotas = ref([]);
 const uploadPausedOrNetworkIssue = ref("");
 
+// this is for barcode 128 scanner
+const videoRef = ref(null)
+const scannedCode = ref(null)
+
+const reader = new BrowserMultiFormatReader()
+const hints = new Map()
+hints.set(DecodeHintType.POSSIBLE_FORMATS, [BarcodeFormat.CODE_128])
+reader.setHints(hints)
+
+let streamControls = null
+
+const startScanner = async () => {
+  scannedCode.value = null
+
+  const devices = await navigator.mediaDevices.enumerateDevices()
+  const videoInputDevices = devices.filter(device => device.kind === 'videoinput')
+  const deviceId = videoInputDevices[0]?.deviceId
+
+  if (!deviceId) {
+    console.error('No video input device found.')
+    return
+  }
+
+  streamControls = await reader.decodeFromVideoDevice(deviceId, videoRef.value, (result, error, controls) => {
+    if (result) {
+      scannedCode.value = result.getText()
+      controls.stop() // auto stop after successful scan
+      streamControls = null
+    }
+  })
+}
+
+const stopScanner = () => {
+  if (streamControls) {
+    streamControls.stop()
+    streamControls = null
+  }
+}
+
+onUnmounted(() => {
+  stopScanner()
+})
+// this is for barcode 128 scanner
 async function loadQueue() {
   queue.value = await getAllFromIndexedDB();
 }
@@ -161,5 +219,10 @@ input {
   font-weight: 500;
   font-size: 18px;
   margin-top: 16px;
+}
+video {
+  width: 90%;
+  max-height: 150px;
+  border: 1px solid #ccc;
 }
 </style>
