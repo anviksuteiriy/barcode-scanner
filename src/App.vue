@@ -10,13 +10,12 @@
     />
     <button @click="tryUploadQueue">Force Sync</button>
     <div>
-      <h2>Code 128 Scanner</h2>
-      <video ref="videoRef" width="320" height="240" autoplay muted playsinline />
-      <div v-if="scannedCode" class="mt-4">
-        <strong>Scanned:</strong> {{ scannedCode }}
-      </div>
-      <button @click="startScanner" class="mt-2 px-4 py-2 bg-blue-600 text-white rounded">Start</button>
-      <button @click="stopScanner" class="ml-2 px-4 py-2 bg-red-600 text-white rounded">Stop</button>
+      <h2>Manual Barcode Scanner (ZXing + Canvas)</h2>
+      <video ref="video" autoplay muted playsinline width="640" height="480" />
+      <canvas ref="canvas" class="hidden" width="640" height="480"></canvas>
+      <div v-if="result"><strong>Scanned:</strong> {{ result }}</div>
+      <button @click="startCamera">Start Camera</button>
+      <button @click="stopCamera">Stop Camera</button>
     </div>
     <ul>
       <li v-for="(item) in queue" :key="item.id">
@@ -39,8 +38,14 @@
 
 <script setup>
 import { onMounted, ref, onUnmounted } from 'vue';
-import { BrowserMultiFormatReader } from '@zxing/browser';
-import { BarcodeFormat, DecodeHintType } from '@zxing/library'
+import {
+  MultiFormatReader,
+  BarcodeFormat,
+  DecodeHintType,
+  BinaryBitmap,
+  HybridBinarizer,
+  RGBLuminanceSource
+} from '@zxing/library'
 import {
   addToIndexedDB,
   getAllFromIndexedDB,
@@ -53,78 +58,64 @@ const quotas = ref([]);
 const uploadPausedOrNetworkIssue = ref("");
 
 // this is for barcode 128 scanner
-const videoRef = ref(null)
-const scannedCode = ref(null)
+const video = ref(null)
+const canvas = ref(null)
+const result = ref('')
+let stream = null
+let reader = null
+let interval = null
 
-const reader = new BrowserMultiFormatReader()
-const hints = new Map()
-hints.set(DecodeHintType.POSSIBLE_FORMATS, [
-  BarcodeFormat.CODE_128,
-  BarcodeFormat.CODE_39,
-  BarcodeFormat.CODE_93,
-  BarcodeFormat.ITF,
-  BarcodeFormat.EAN_13,
-  BarcodeFormat.UPC_A,
-  BarcodeFormat.QR_CODE,
-])
-reader.setHints(hints)
+const startCamera = async () => {
+  result.value = ''
 
-let streamControls = null
-
-const startScanner = async () => {
-  scannedCode.value = null
-
-  const devices = await navigator.mediaDevices.enumerateDevices()
-  const videoInputDevices = devices.filter(device => device.kind === 'videoinput')
-
-  const rearCamera = videoInputDevices.find(device =>
-    device.label.toLowerCase().includes('back') ||
-    device.label.toLowerCase().includes('rear') ||
-    device.label.toLowerCase().includes('environment')
-  )
-
-  const selectedDeviceId = rearCamera?.deviceId || videoInputDevices[0]?.deviceId
-  if (!selectedDeviceId) {
-    console.error('No camera found')
-    return
-  }
-
-  streamControls = await reader.decodeFromVideoDevice(
-    selectedDeviceId,
-    videoRef.value,
-    (result, error) => {
-      if (result) {
-        const text = result.getText();
-        prompt(text);
-        if (text !== scannedCode.value) {
-          scannedCode.value = text
-          console.log('Scanned:', text)
-          // comment out to keep scanning:
-          // controls.stop()
-        }
-      } else if (error && error.name !== 'NotFoundException') {
-        console.warn('Decode error:', error.message)
-      }
-    },
-    {
-      video: {
-        deviceId: selectedDeviceId,
-        width: { ideal: 1920 },
-        height: { ideal: 1080 },
-        facingMode: 'environment'
-      }
+  // Start camera
+  stream = await navigator.mediaDevices.getUserMedia({
+    video: {
+      facingMode: 'environment',
+      width: { ideal: 1920 },
+      height: { ideal: 1080 }
     }
-  )
+  })
+
+  video.value.srcObject = stream
+
+  // Initialize reader
+  reader = new MultiFormatReader()
+  const hints = new Map()
+  hints.set(DecodeHintType.POSSIBLE_FORMATS, [BarcodeFormat.CODE_128])
+  reader.setHints(hints)
+
+  interval = setInterval(decodeFrame, 300)
 }
 
-const stopScanner = () => {
-  if (streamControls) {
-    streamControls.stop()
-    streamControls = null
+const decodeFrame = () => {
+  const ctx = canvas.value.getContext('2d')
+  ctx.drawImage(video.value, 0, 0, canvas.value.width, canvas.value.height)
+  const imageData = ctx.getImageData(0, 0, canvas.value.width, canvas.value.height)
+
+  const luminanceSource = new RGBLuminanceSource(imageData.data, canvas.value.width, canvas.value.height)
+  const binaryBitmap = new BinaryBitmap(new HybridBinarizer(luminanceSource))
+
+  try {
+    const decoded = reader.decode(binaryBitmap)
+    result.value = decoded.getText()
+    console.log('Decoded:', result.value)
+    stopCamera()
+  } catch (err) {
+    // nothing found in this frame
   }
 }
 
-onUnmounted(stopScanner)
+const stopCamera = () => {
+  if (interval) clearInterval(interval)
+  if (stream) {
+    stream.getTracks().forEach(t => t.stop())
+    stream = null
+  }
+}
+onUnmounted(() => {
+  stopCamera()
+})
 // this is for barcode 128 scanner
 async function loadQueue() {
   queue.value = await getAllFromIndexedDB();
@@ -247,9 +238,11 @@ input {
   font-size: 18px;
   margin-top: 16px;
 }
+canvas.hidden {
+  display: none;
+}
 video {
-  width: 100%;
-  max-height: 300px;
   border: 1px solid #ccc;
+  border-radius: 8px;
 }
 </style>
