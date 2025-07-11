@@ -9,14 +9,13 @@
       @change="onFilesSelected"
     />
     <button @click="tryUploadQueue">Force Sync</button>
-    <div>
-      <h2>Manual Barcode Scanner (ZXing + Canvas)</h2>
-      <video ref="video" autoplay muted playsinline width="640" height="480" />
-      <canvas ref="canvas" class="hidden" width="640" height="480"></canvas>
-      <div v-if="result"><strong>Scanned:</strong> {{ result }}</div>
-      <button @click="startCamera">Start Camera</button>
-      <button @click="stopCamera">Stop Camera</button>
-    </div>
+    <VueQuagga
+      :reader="'code_128_reader'"
+      :stopOnDetection="true"
+      @init="onInit"
+      @detected="onDetected"
+      @error="onError"
+    />
     <ul>
       <li v-for="(item) in queue" :key="item.id">
         {{ item.itemId }} - {{ item.fileName }} - {{ item.uploaded ? 'Uploaded' : 'Pending' }}
@@ -37,86 +36,34 @@
 </template>
 
 <script setup>
-import { onMounted, ref, onUnmounted } from 'vue';
-import {
-  MultiFormatReader,
-  BarcodeFormat,
-  DecodeHintType,
-  BinaryBitmap,
-  HybridBinarizer,
-  RGBLuminanceSource
-} from '@zxing/library'
+import { onMounted, ref } from 'vue';
 import {
   addToIndexedDB,
   getAllFromIndexedDB,
   deleteFromIndexedDB
 } from '@/utils/db';
+import VueQuagga from '@/components/VueQuagga.vue';
 
 const queue = ref([]);
 const uploadedItems = ref([]);
 const quotas = ref([]);
 const uploadPausedOrNetworkIssue = ref("");
 
-// this is for barcode 128 scanner
-const video = ref(null)
-const canvas = ref(null)
-const result = ref('')
-let stream = null
-let reader = null
-let interval = null
+const code = ref('')
 
-const startCamera = async () => {
-  result.value = ''
-
-  // Start camera
-  stream = await navigator.mediaDevices.getUserMedia({
-    video: {
-      facingMode: 'environment',
-      width: { ideal: 1920 },
-      height: { ideal: 1080 }
-    }
-  })
-
-  video.value.srcObject = stream
-
-  // Initialize reader
-  reader = new MultiFormatReader()
-  const hints = new Map()
-  hints.set(DecodeHintType.POSSIBLE_FORMATS, [BarcodeFormat.CODE_128])
-  reader.setHints(hints)
-
-  interval = setInterval(decodeFrame, 300)
+const onInit = () => {
+  console.log('Scanner initialized')
 }
 
-const decodeFrame = () => {
-  const ctx = canvas.value.getContext('2d')
-  ctx.drawImage(video.value, 0, 0, canvas.value.width, canvas.value.height)
-  const imageData = ctx.getImageData(0, 0, canvas.value.width, canvas.value.height)
-
-  const luminanceSource = new RGBLuminanceSource(imageData.data, canvas.value.width, canvas.value.height)
-  const binaryBitmap = new BinaryBitmap(new HybridBinarizer(luminanceSource))
-
-  try {
-    const decoded = reader.decode(binaryBitmap)
-    result.value = decoded.getText()
-    console.log('Decoded:', result.value)
-    stopCamera()
-  } catch (err) {
-    // nothing found in this frame
-  }
+const onDetected = (scanned) => {
+  console.log('✅ Detected:', scanned)
+  code.value = scanned
 }
 
-const stopCamera = () => {
-  if (interval) clearInterval(interval)
-  if (stream) {
-    stream.getTracks().forEach(t => t.stop())
-    stream = null
-  }
+const onError = (err) => {
+  console.error('Scanner error:', err)
 }
-onUnmounted(() => {
-  stopCamera()
-})
-// this is for barcode 128 scanner
+
 async function loadQueue() {
   queue.value = await getAllFromIndexedDB();
 }
@@ -237,12 +184,5 @@ input {
   font-weight: 500;
   font-size: 18px;
   margin-top: 16px;
-}
-canvas.hidden {
-  display: none;
-}
-video {
-  border: 1px solid #ccc;
-  border-radius: 8px;
 }
 </style>
