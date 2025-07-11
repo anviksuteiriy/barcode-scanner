@@ -9,13 +9,7 @@
       @change="onFilesSelected"
     />
     <button @click="tryUploadQueue">Force Sync</button>
-    <VueQuagga
-      :reader="'code_128_reader'"
-      :stopOnDetection="true"
-      @init="onInit"
-      @detected="onDetected"
-      @error="onError"
-    />
+    <QuaggaScanner />
     <ul>
       <li v-for="(item) in queue" :key="item.id">
         {{ item.itemId }} - {{ item.fileName }} - {{ item.uploaded ? 'Uploaded' : 'Pending' }}
@@ -42,27 +36,12 @@ import {
   getAllFromIndexedDB,
   deleteFromIndexedDB
 } from '@/utils/db';
-import VueQuagga from '@/components/VueQuagga.vue';
+import QuaggaScanner from '@/components/VueQuagga.vue'
 
 const queue = ref([]);
 const uploadedItems = ref([]);
 const quotas = ref([]);
 const uploadPausedOrNetworkIssue = ref("");
-
-const code = ref('')
-
-const onInit = () => {
-  console.log('Scanner initialized')
-}
-
-const onDetected = (scanned) => {
-  console.log('✅ Detected:', scanned)
-  code.value = scanned
-}
-
-const onError = (err) => {
-  console.error('Scanner error:', err)
-}
 
 async function loadQueue() {
   queue.value = await getAllFromIndexedDB();
