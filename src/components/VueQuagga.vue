@@ -1,9 +1,13 @@
 <template>
   <div>
     <div ref="scannerContainer" class="viewport"></div>
-    <button @click="startScanner">Start Scanner</button>
-    <button @click="stopScanner">Stop Scanner</button>
-    <p v-if="code">Detected Code: {{ code }}</p>
+
+    <div class="controls">
+      <button @click="startScanner">Start Scanner</button>
+      <button @click="stopScanner">Stop Scanner</button>
+    </div>
+
+    <p v-if="code">✅ Detected Code: <strong>{{ code }}</strong></p>
   </div>
 </template>
 
@@ -13,29 +17,28 @@ import Quagga from '@ericblade/quagga2'
 
 const scannerContainer = ref(null)
 const code = ref(null)
-let selectedDeviceId = null
 
-// Get all video input devices and pick back camera (camera 0 or 2 ideally)
+// 🟩 Select the back camera based on label/deviceId
 async function selectBackCamera() {
+  // Ask for permission to access camera so labels are populated
+  await navigator.mediaDevices.getUserMedia({ video: true })
   const devices = await navigator.mediaDevices.enumerateDevices()
-  const videoDevices = devices.filter(d => d.kind === 'videoinput')
+  const videoDevices = devices.filter(device => device.kind === 'videoinput')
 
-  // Try to find the first back-facing camera
-  const backCam = videoDevices.find(device =>
+  // Try to find a back/environment camera
+  const backCamera = videoDevices.find(device =>
     device.label.toLowerCase().includes('back') ||
-    device.label.toLowerCase().includes('environment') ||
-    device.deviceId.includes('2') // fallback for camera 2
-  ) || videoDevices[0] // fallback to first if not found
+    device.label.toLowerCase().includes('environment')
+  )
 
-  selectedDeviceId = backCam?.deviceId || null
+  return backCamera?.deviceId || videoDevices[0]?.deviceId || null
 }
 
-// Start scanner after selecting camera
+// 🟩 Start scanner with selected back camera
 async function startScanner() {
-  await selectBackCamera()
-
-  if (!selectedDeviceId) {
-    console.error('No camera found')
+  const deviceId = await selectBackCamera()
+  if (!deviceId) {
+    console.error('No back camera found')
     return
   }
 
@@ -45,11 +48,10 @@ async function startScanner() {
       type: 'LiveStream',
       target: scannerContainer.value,
       constraints: {
-        deviceId: selectedDeviceId ? { exact: selectedDeviceId } : undefined,
+        deviceId: { exact: deviceId },
         width: { ideal: 1280 },
         height: { ideal: 720 },
         aspectRatio: { ideal: 1.777 },
-        focusMode: 'continuous',
       },
     },
     locator: {
@@ -71,24 +73,30 @@ async function startScanner() {
 
   Quagga.onDetected(result => {
     const detectedCode = result.codeResult.code
-    console.log('Barcode detected:', detectedCode)
+    console.log('📦 Barcode detected:', detectedCode)
     code.value = detectedCode
 
-    // Optional: Quagga.stop()
+    // Optionally stop after one detection:
+    // stopScanner()
   })
 }
 
+// 🟥 Stop scanner and fully release camera stream
 function stopScanner() {
   Quagga.stop()
 
-  // Stop camera video stream completely
+  // Stop video stream manually
   const stream = Quagga?.cameraAccess?.getActiveStream?.()
   if (stream) {
     stream.getTracks().forEach(track => track.stop())
   }
 
+  // Optional: Clear DOM
+  scannerContainer.value.innerHTML = ''
+
   code.value = null
 }
+
 onBeforeUnmount(() => {
   stopScanner()
 })
@@ -97,13 +105,37 @@ onBeforeUnmount(() => {
 <style scoped>
 .viewport {
   width: 100%;
+  max-width: 720px;
   margin: auto;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 0 12px rgba(0, 0, 0, 0.2);
 }
+
 video, canvas {
-  display: none;
   width: 100%;
   height: auto;
-  border-radius: 12px;
-  box-shadow: 0 0 12px rgba(0, 0, 0, 0.3);
+  display: block;
+}
+
+.controls {
+  margin-top: 1rem;
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+}
+
+button {
+  padding: 0.6rem 1.2rem;
+  border: none;
+  background-color: #42b883;
+  color: white;
+  font-weight: bold;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+button:hover {
+  background-color: #33996c;
 }
 </style>
