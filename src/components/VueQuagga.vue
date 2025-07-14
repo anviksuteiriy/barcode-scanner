@@ -32,7 +32,7 @@ function startScanner() {
       target: scannerContainer.value,
       constraints: {
         facingMode: { ideal: 'environment' }, // back camera
-        width: { ideal: 1960 },
+        width: { ideal: 1920 },
         height: { ideal: 720 }
       },
     },
@@ -80,14 +80,37 @@ onBeforeUnmount(() => {
 })
 </script>
 
-<style scoped>
+<style>
 .viewport {
-  width: 100%;
-  max-width: 720px;
-  margin: auto;
+  max-width: 100%;
   border-radius: 12px;
   overflow: hidden;
   box-shadow: 0 0 12px rgba(0, 0, 0, 0.2);
+  position: relative;
+  width: 90vw;
+  height: 75vh; /* or 100% if inside a container with fixed height */
+  background: black;
+  overflow: hidden;
+}
+
+/* Force video to fill the container */
+.viewport video {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover; /* maintain aspect ratio */
+}
+
+/* Make canvas fill container exactly like video */
+.viewport canvas.drawingBuffer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100% !important;
+  height: 100% !important;
+  pointer-events: none;
 }
 video, canvas {
   width: 100%;
