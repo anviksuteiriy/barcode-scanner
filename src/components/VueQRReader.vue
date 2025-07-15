@@ -92,8 +92,10 @@
   
     // ✅ Auto-select "camera 2 0" or fallback to rear-facing
     const preferredCam = constraintOptions.value.find(opt =>
-      /camera\s*2\s*0|back|rear/i.test(opt.label)
+      prompt(opt)
     )
+
+    // /camera\s*2\s*0|back|rear/i.test(opt.label)
     selectedConstraints.value = preferredCam?.constraints || { facingMode: 'environment' }
   
     error.value = ''
