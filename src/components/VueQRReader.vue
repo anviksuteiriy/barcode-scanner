@@ -11,7 +11,6 @@
   
       <!-- Barcode Scanner -->
       <qrcode-stream
-        v-if="selectedDeviceId"
         :constraints="cameraConstraints"
         @detect="onDetect"
         @camera-on="onCameraOn"
