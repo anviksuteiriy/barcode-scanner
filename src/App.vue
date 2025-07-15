@@ -9,7 +9,7 @@
       @change="onFilesSelected"
     />
     <button @click="tryUploadQueue">Force Sync</button>
-    <QuaggaScanner />
+    <VueQRReader />
     <ul>
       <li v-for="(item) in queue" :key="item.id">
         {{ item.itemId }} - {{ item.fileName }} - {{ item.uploaded ? 'Uploaded' : 'Pending' }}
@@ -36,7 +36,7 @@ import {
   getAllFromIndexedDB,
   deleteFromIndexedDB
 } from '@/utils/db';
-import QuaggaScanner from '@/components/VueQuagga.vue'
+import VueQRReader from '@/components/VueQRReader.vue'
 
 const queue = ref([]);
 const uploadedItems = ref([]);
