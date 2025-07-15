@@ -92,7 +92,7 @@
   
     // ✅ Auto-select "camera 2 0" or fallback to rear-facing
     const preferredCam = constraintOptions.value.find(opt =>
-      prompt(opt)
+      prompt(opt.label)
     )
 
     // /camera\s*2\s*0|back|rear/i.test(opt.label)
