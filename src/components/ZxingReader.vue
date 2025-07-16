@@ -16,6 +16,7 @@
       <p class="error">{{ error }}</p>
   
       <video ref="videoRef" style="width: 100%; height: auto;" muted playsinline></video>
+      <div>{{ selectedDeviceId }}</div>
   
       <p class="decode-result">
         Last Code 128 result: <b>{{ result }}</b>
@@ -75,8 +76,6 @@ async function startScanner() {
       selectedDeviceId.value,
       videoRef.value,
       (resultObj) => {
-        prompt(selectedDeviceId.value, videoRef.value);
-        prompt(resultObj);
         if (resultObj) {
           result.value = resultObj.getText()
         }
