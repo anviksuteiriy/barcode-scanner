@@ -80,9 +80,23 @@
   
   const selectedConstraints = ref({ facingMode: 'environment' })
   const defaultConstraintOptions = [
-    { label: 'rear camera', constraints: { facingMode: 'environment' } },
-    { label: 'front camera', constraints: { facingMode: 'user' } }
-  ]
+  {
+    label: 'rear camera',
+    constraints: {
+      facingMode: 'environment',
+      width: { ideal: 1920 },
+      height: { ideal: 1080 }
+    }
+  },
+  {
+    label: 'front camera',
+    constraints: {
+      facingMode: 'user',
+      width: { ideal: 1920 },
+      height: { ideal: 1080 }
+    }
+  }
+]
   const constraintOptions = ref(defaultConstraintOptions)
   
   async function onCameraReady() {
@@ -101,7 +115,7 @@
       }))
     ]
     // ✅ Auto-select "camera 2 0" or fallback to rear-facing
-    
+
     // const preferredCam = constraintOptions.value.find(opt => opt.label.includes("camera2 0, facing back"));
     // prompt(preferredCam?.constraints, preferredCam?.label);
     // selectedConstraints.value = preferredCam?.constraints || { facingMode: 'environment' }
