@@ -101,10 +101,11 @@
       }))
     ]
     // ✅ Auto-select "camera 2 0" or fallback to rear-facing
+    
     // const preferredCam = constraintOptions.value.find(opt => opt.label.includes("camera2 0, facing back"));
     // prompt(preferredCam?.constraints, preferredCam?.label);
     // selectedConstraints.value = preferredCam?.constraints || { facingMode: 'environment' }
-    selectedConstraints.value = { facingMode: 'environment' }
+    // selectedConstraints.value = { facingMode: 'environment' }
 
   
     error.value = ''
