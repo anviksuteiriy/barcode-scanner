@@ -53,9 +53,9 @@ import { DecodeHintType } from '@zxing/library'
     }
   })
   
-  onBeforeUnmount(() => {
+  onBeforeUnmount(async () => {
     if (codeReader) {
-      codeReader.reset()
+        await codeReader.stopContinuousDecode();
     }
   })
   
@@ -64,7 +64,7 @@ import { DecodeHintType } from '@zxing/library'
         if (!selectedDeviceId.value) return;
 
         if (codeReader) {
-        await codeReader.stopContinuousDecode(); // ✅ stop previous
+            await codeReader.stopContinuousDecode(); // ✅ stop previous
         }
 
         const hints = new Map();
