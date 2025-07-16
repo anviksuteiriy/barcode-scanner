@@ -36,7 +36,6 @@ import { DecodeHintType } from '@zxing/library'
   const error = ref('')
   const selectedDeviceId = ref('')
   const videoInputDevices = ref([])
-  let codeReader = null
   
   onMounted(async () => {
     try {
@@ -53,49 +52,48 @@ import { DecodeHintType } from '@zxing/library'
     }
   })
   
-  onBeforeUnmount(async () => {
-    if (codeReader) {
-        await codeReader.stopContinuousDecode();
-    }
-  })
+  onBeforeUnmount(() => {
+  if (streamControls) {
+    streamControls.stop()
+  }
+})
   
-  async function startScanner() {
-    try {
-        if (!selectedDeviceId.value) return;
+let codeReader = null
+let streamControls = null // holds stop() method
 
-        if (codeReader) {
-            await codeReader.stopContinuousDecode(); // ✅ stop previous
-        }
-
-        const hints = new Map();
-        hints.set(DecodeHintType.POSSIBLE_FORMATS, [BarcodeFormat.CODE_128]);
-
-        codeReader = new BrowserMultiFormatReader(hints, {
-        delayBetweenScanAttempts: 300
-        });
-
-        await codeReader.decodeFromVideoDevice(
-        selectedDeviceId.value,
-        videoRef.value,
-        (resultObj) => {
-            if (resultObj) {
-            result.value = resultObj.getText();
-            }
-        },
-        {
-            video: {
-            width: { ideal: 1920 },
-            height: { ideal: 1080 },
-            facingMode: 'environment'
-            }
-        }
-        );
-
-        error.value = '';
-    } catch (err) {
-        error.value = err.message;
+async function startScanner() {
+  try {
+    if (streamControls) {
+      streamControls.stop() // ✅ stop previous scanner
     }
-    }
+
+    const hints = new Map()
+    hints.set(DecodeHintType.POSSIBLE_FORMATS, [BarcodeFormat.CODE_128])
+
+    codeReader = new BrowserMultiFormatReader(hints)
+
+    streamControls = await codeReader.decodeFromVideoDevice(
+      selectedDeviceId.value,
+      videoRef.value,
+      (resultObj) => {
+        if (resultObj) {
+          result.value = resultObj.getText()
+        }
+      },
+      {
+        video: {
+          width: { ideal: 1920 },
+          height: { ideal: 1080 },
+          facingMode: 'environment'
+        }
+      }
+    )
+
+    error.value = ''
+  } catch (err) {
+    error.value = err.message
+  }
+}
   </script>
   
   <style scoped>
