@@ -9,7 +9,8 @@
       @change="onFilesSelected"
     />
     <button @click="tryUploadQueue">Force Sync</button>
-    <VueQRReader />
+    <!-- <VueQRReader /> -->
+     <ZxingReader />
     <ul>
       <li v-for="(item) in queue" :key="item.id">
         {{ item.itemId }} - {{ item.fileName }} - {{ item.uploaded ? 'Uploaded' : 'Pending' }}
@@ -36,7 +37,8 @@ import {
   getAllFromIndexedDB,
   deleteFromIndexedDB
 } from '@/utils/db';
-import VueQRReader from '@/components/VueQRReader.vue'
+// import VueQRReader from '@/components/VueQRReader.vue'
+import ZxingReader from '@/components/ZxingReader.vue'
 
 const queue = ref([]);
 const uploadedItems = ref([]);

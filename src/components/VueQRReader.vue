@@ -80,23 +80,10 @@
   
   const selectedConstraints = ref({ facingMode: 'environment' })
   const defaultConstraintOptions = [
-  {
-    label: 'rear camera',
-    constraints: {
-      facingMode: 'environment',
-      width: { ideal: 1920 },
-      height: { ideal: 1080 }
-    }
-  },
-  {
-    label: 'front camera',
-    constraints: {
-      facingMode: 'user',
-      width: { ideal: 1920 },
-      height: { ideal: 1080 }
-    }
-  }
-]
+    { label: 'rear camera', constraints: { facingMode: 'environment' } },
+    { label: 'front camera', constraints: { facingMode: 'user' } }
+  ]
+
   const constraintOptions = ref(defaultConstraintOptions)
   
   async function onCameraReady() {
@@ -111,7 +98,11 @@
       ...defaultConstraintOptions,
       ...videoDevices.map(({ deviceId, label }) => ({
         label: `${label} (ID: ${deviceId})`,
-        constraints: { deviceId }
+        constraints: {
+        deviceId,
+        width: { ideal: 1920 },
+        height: { ideal: 1080 }
+    }
       }))
     ]
     // ✅ Auto-select "camera 2 0" or fallback to rear-facing
