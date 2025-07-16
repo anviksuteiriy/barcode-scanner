@@ -76,6 +76,7 @@ async function startScanner() {
       selectedDeviceId.value,
       videoRef.value,
       (resultObj) => {
+        prompt(resultObj);
         if (resultObj) {
           result.value = resultObj.getText()
         }
