@@ -61,41 +61,41 @@ import { DecodeHintType } from '@zxing/library'
   
   async function startScanner() {
     try {
-      if (!selectedDeviceId.value) return
-  
-      if (codeReader) {
-        codeReader.reset()
-      }
-  
-      const hints = new Map()
-      hints.set(DecodeHintType.POSSIBLE_FORMATS, [BarcodeFormat.CODE_128])
-  
-      codeReader = new BrowserMultiFormatReader(hints, {
+        if (!selectedDeviceId.value) return;
+
+        if (codeReader) {
+        await codeReader.stopContinuousDecode(); // ✅ stop previous
+        }
+
+        const hints = new Map();
+        hints.set(DecodeHintType.POSSIBLE_FORMATS, [BarcodeFormat.CODE_128]);
+
+        codeReader = new BrowserMultiFormatReader(hints, {
         delayBetweenScanAttempts: 300
-      })
-  
-      await codeReader.decodeFromVideoDevice(
+        });
+
+        await codeReader.decodeFromVideoDevice(
         selectedDeviceId.value,
         videoRef.value,
-        resultObj => {
-          if (resultObj) {
-            result.value = resultObj.getText()
-          }
+        (resultObj) => {
+            if (resultObj) {
+            result.value = resultObj.getText();
+            }
         },
         {
-          video: {
+            video: {
             width: { ideal: 1920 },
             height: { ideal: 1080 },
             facingMode: 'environment'
-          }
+            }
         }
-      )
-  
-      error.value = ''
+        );
+
+        error.value = '';
     } catch (err) {
-      error.value = err.message
+        error.value = err.message;
     }
-  }
+    }
   </script>
   
   <style scoped>
