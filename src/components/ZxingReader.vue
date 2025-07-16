@@ -71,11 +71,11 @@ async function startScanner() {
     hints.set(DecodeHintType.POSSIBLE_FORMATS, [BarcodeFormat.CODE_128])
 
     codeReader = new BrowserMultiFormatReader(hints)
-
     streamControls = await codeReader.decodeFromVideoDevice(
       selectedDeviceId.value,
       videoRef.value,
       (resultObj) => {
+        prompt(selectedDeviceId.value, videoRef.value);
         prompt(resultObj);
         if (resultObj) {
           result.value = resultObj.getText()
