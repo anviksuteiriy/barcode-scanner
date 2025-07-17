@@ -91,7 +91,7 @@ async function startScan() {
         const codes = await detector.detect(videoRef.value)
         if (codes.length) {
           result.value = codes.map(c => c.rawValue).join(', ')
-          clearScan()
+          // clearScan()
         }
       } catch (e) {
         onError(e)
