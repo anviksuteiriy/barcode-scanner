@@ -53,11 +53,23 @@ async function populateCameraOptions() {
     const devices = await navigator.mediaDevices.enumerateDevices()
     const videoDevices = devices.filter(d => d.kind === 'videoinput')
 
+    // constraintOptions.value = videoDevices.map((device, index) => {
+    //   const isBack = /back|rear|environment/i.test(device.label)
+    //   const label = device.label || `Camera ${index + 1}`
+    //   return {
+    //     label: isBack ? `Back Camera (${label})` : `Front Camera (${label})`,
+    //     constraints: {
+    //       deviceId: { exact: device.deviceId },
+    //       width: { ideal: 1920 },
+    //       height: { ideal: 1080 }
+    //     }
+    //   }
+    // })
+
     constraintOptions.value = videoDevices.map((device, index) => {
-      const isBack = /back|rear|environment/i.test(device.label)
       const label = device.label || `Camera ${index + 1}`
       return {
-        label: isBack ? `Back Camera (${label})` : `Front Camera (${label})`,
+        label,
         constraints: {
           deviceId: { exact: device.deviceId },
           width: { ideal: 1920 },
