@@ -46,7 +46,10 @@ let detector = null
 async function onError(e) {
   error.value = `Error: ${e.name || e.message}`
 }
-
+const defaultConstraintOptions = [
+    { label: 'rear camera', constraints: { facingMode: 'environment' } },
+    { label: 'front camera', constraints: { facingMode: 'user' } }
+  ]
 // Detect all cameras and label them nicely
 async function populateCameraOptions() {
   try {
@@ -66,23 +69,36 @@ async function populateCameraOptions() {
     //   }
     // })
 
-    constraintOptions.value = videoDevices.map((device, index) => {
-      const label = device.label || `Camera ${index + 1}`
-      return {
-        label,
+    // constraintOptions.value = videoDevices.map((device, index) => {
+    //   const label = device.label || `Camera ${index + 1}`
+    //   return {
+    //     ...defaultConstraintOptions,
+    //     label,
+    //     constraints: {
+    //       deviceId: { exact: device.deviceId },
+    //       width: { ideal: 1920 },
+    //       height: { ideal: 1080 }
+    //     },
+    //   }
+    // })
+
+    constraintOptions.value = [
+      ...defaultConstraintOptions,
+      ...videoDevices.map(({ deviceId, label }) => ({
+        label: `${label} (ID: ${deviceId})`,
         constraints: {
-          deviceId: { exact: device.deviceId },
-          width: { ideal: 1920 },
-          height: { ideal: 1080 }
-        }
-      }
-    })
+        deviceId,
+        width: { ideal: 1920 },
+        height: { ideal: 1080 }
+    }
+      }))
+    ]
 
     // Try to auto-select back camera
-    const backCam = constraintOptions.value.find(opt =>
-      /back|rear|environment/i.test(opt.label)
-    )
-    selectedConstraints.value = backCam?.constraints || constraintOptions.value[0]?.constraints || {}
+    // const backCam = constraintOptions.value.find(opt =>
+    //   /back|rear|environment/i.test(opt.label)
+    // ) backCam?.constraints || 
+    selectedConstraints.value = constraintOptions.value[0]?.constraints || {}
   } catch (e) {
     onError(e)
   }
@@ -123,6 +139,9 @@ function clearScan() {
 }
 
 onMounted(async () => {
+  selectedConstraints.value = {
+    facingMode: { exact: 'environment' }
+  }
   await populateCameraOptions()
   await startScan()
 })
